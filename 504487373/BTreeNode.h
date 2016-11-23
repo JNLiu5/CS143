@@ -9,6 +9,7 @@
 
 #ifndef BTREENODE_H
 #define BTREENODE_H
+#define KEYS_PER_NODE 70
 
 #include "RecordFile.h"
 #include "PageFile.h"

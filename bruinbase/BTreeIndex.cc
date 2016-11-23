@@ -18,6 +18,7 @@ using namespace std;
 BTreeIndex::BTreeIndex()
 {
     rootPid = -1;
+    treeHeight = 0;
 }
 
 /*
@@ -29,7 +30,20 @@ BTreeIndex::BTreeIndex()
  */
 RC BTreeIndex::open(const string& indexname, char mode)
 {
-    return 0;
+	RC ret = pf.open(indexname, mode);
+   	if(ret != 0) {
+   		cerr << "Error opening" << endl;
+   		return ret;
+   	}
+   	char buffer[PageFile::PAGE_SIZE];
+   	ret = pf.read(0, buffer);
+   	if(ret != 0) {
+   		cerr << "Error reading" << endl;
+   		return ret;
+   	}
+   	memcpy(&rootPid, &buffer[0], sizeof(PageId));
+   	memcpy(&treeHeight, &buffer[0] + sizeof(PageId), sizeof(int));
+   	return 0;
 }
 
 /*
@@ -38,7 +52,17 @@ RC BTreeIndex::open(const string& indexname, char mode)
  */
 RC BTreeIndex::close()
 {
-    return 0;
+	char buffer[PageFile::PAGE_SIZE];
+	memset(buffer, 0 , PageFile::PAGE_SIZE);
+	memcpy(&buffer, &rootPid, sizeof(PageId));
+	memcpy(&buffer + sizeof(PageId), &treeHeight, sizeof(int));
+	RC ret = pf.write(0, buffer);
+	if(ret != 0) {
+		cerr << "Error closing" << endl;
+		return ret;
+	}
+
+    return pf.close();
 }
 
 /*
@@ -49,10 +73,32 @@ RC BTreeIndex::close()
  */
 RC BTreeIndex::insert(int key, const RecordId& rid)
 {
-    return 0;
+	if(treeHeight == 0) {
+		BTLeafNode root;
+		return root.insert(key, rid);
+	}
+	IndexCursor index;
+	RC ret = locate(key, &index);
+	BTLeafNode node;
+	node.read(index.pid, pf);
+	if(node.getKeyCount() < KEYS_PER_NODE - 1) {
+		ret = node.insert(key, rid);
+		if(ret != 0) {
+			return ret;
+		}
+	}
+	else {
+		BTLeafNode new_node;
+		int new_node_key;
+		node.insertAndSplit(key, rid, new_node, new_node_key);
+	}
+
+
+	
+	return 0;
 }
 
-/**
+/*
  * Run the standard B+Tree key search algorithm and identify the
  * leaf node where searchKey may exist. If an index entry with
  * searchKey exists in the leaf node, set IndexCursor to its location
@@ -68,11 +114,31 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
  * @param cursor[OUT] the cursor pointing to the index entry with
  *                    searchKey or immediately behind the largest key
  *                    smaller than searchKey.
- * @return 0 if searchKey is found. Othewise an error code
- */
+ * @return 0 if searchKey is found. Othewise an error code*/
+ 
 RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
 {
-    return 0;
+ /* Returns leaf node C and index i such that C.Pi points to first record
+* with search key value V */
+	/*
+Set C = root node
+while (C is not a leaf node) begin
+Let i = smallest number such that V ≤ C.Ki
+if there is no such number i then begin
+Let Pm = last non-null pointer in the node
+Set C = C.Pm
+end
+else if (V = C.Ki )
+then Set C = C.Pi+1
+else C = C.Pi /* V < C.Ki */
+	/*
+end
+/* C is a leaf node *//*
+Let i be the least value such that Ki = V
+if there is such a value i
+then return (C, i)
+else return null ;*/ /* No record with key value V exists*/
+	return 0;
 }
 
 /*

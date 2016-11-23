@@ -10,6 +10,10 @@
 #ifndef BTREEINDEX_H
 #define BTREEINDEX_H
 
+#define KEYS_PER_NODE 70
+
+#include <iostream>
+
 #include "Bruinbase.h"
 #include "PageFile.h"
 #include "RecordFile.h"
