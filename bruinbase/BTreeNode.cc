@@ -62,14 +62,7 @@ RC BTLeafNode::insert(int key, const RecordId& rid) {
 	}
 	// find position, in terms of pairs, that the new key should go in the buffer
 	int pos = 0;
-	while(pos < count) {
-		int pair_key;
-		memcpy(&pair_key, buffer + (pos * pair_size) + sizeof(RecordId), sizeof(int));
-		if(key >= pair_key) {
-			break;
-		}
-		pos++;
-	}
+	locate(key, pos);
 	// to insert into the middle, copy everything after to another buffer, insert, and copy back
 	int copy_size = PageFile::PAGE_SIZE - (pos * pair_size) - sizeof(PageId) - pair_size;
 	char temp_buffer[copy_size];
@@ -97,45 +90,58 @@ RC BTLeafNode::insert(int key, const RecordId& rid) {
  */
 RC BTLeafNode::insertAndSplit(int key, const RecordId& rid, 
                               BTLeafNode& sibling, int& siblingKey) {
+	cout << "insertAndSplit start" << endl;
 	int count = getKeyCount();
 	int first_half = (count + 1)/2;
 	int pair_size = sizeof(RecordId) + sizeof(int);
 
 	// create buffer that contains buffer and inserted data, sorted correctly
-	char temp_buffer[PageFile::PAGE_SIZE + sizeof(RecordId) + sizeof(int)];
+	int size_of_temp = PageFile::PAGE_SIZE + sizeof(RecordId) + sizeof(int);
+	char temp_buffer[size_of_temp];
 	int pos = 0;
-	while(pos < count) {
-		RecordId temp_record;
-		memcpy(&temp_record, buffer + (pos * pair_size), sizeof(RecordId));
-		int temp_key;
-		memcpy(&temp_key, buffer + (pos * pair_size) + sizeof(RecordId), sizeof(int));
+	locate(key, pos);
 
-		if(key >= temp_key) {
-			break;
-		}
-
-		memcpy(temp_buffer + (pos * pair_size), buffer + (pos * pair_size), pair_size);
-		pos++;
-	}
+	// insert first half of buffer
+	memcpy(temp_buffer, buffer, pos * pair_size);
 	// insert rid and key at the correct position
 	memcpy(temp_buffer + (pos * pair_size), &rid, sizeof(RecordId));
 	memcpy(temp_buffer + (pos * pair_size) + sizeof(RecordId), &key, sizeof(int));
 	// copy over rest of buffer
 	memcpy(temp_buffer + ((pos + 1) * pair_size), buffer + pos * pair_size, PageFile::PAGE_SIZE - pos * pair_size);
 
+	// debugging print loop
+	for(int i = 0; i < size_of_temp/pair_size; i++) {
+		RecordId temp_rid;
+		int temp_key;
+		memcpy(&temp_rid, temp_buffer + (i * pair_size), sizeof(RecordId));
+		memcpy(&temp_key, temp_buffer + (i * pair_size) + sizeof(RecordId), sizeof(int));
+		if(temp_key != -1 && temp_rid.pid != -1 && temp_rid.sid != -1) {
+			cout << temp_rid.pid << ", " << temp_rid.sid << "; " << temp_key << " at " << (unsigned int)(temp_buffer + (i * pair_size)) << endl;
+		}
+		else {
+			break;
+		}
+	}
+	cout << endl;
+
+	cout << "Copying to sibling" << endl;
 	// copy over second half of buffer to sibling
 	for(int i = first_half; i < count + 1; i++) {
 		RecordId sibling_rid;
 		int sibling_key;
 		memcpy(&sibling_rid, temp_buffer + (i * pair_size), sizeof(RecordId));
 		memcpy(&sibling_key, temp_buffer + (i * pair_size) + sizeof(RecordId), sizeof(int));
+		cout << i << "; " << sibling_rid.pid << ", " << sibling_rid.sid << "; " << sibling_key << " at " << (unsigned int)(temp_buffer + (i * pair_size)) << endl;
 		sibling.insert(sibling_key, sibling_rid);
 	}
+	cout << endl;
 	// copy over nextNodePtr
 	sibling.setNextNodePtr(getNextNodePtr());
 	// set second half of current node buffer to be empty again
 	memset(buffer + (first_half * pair_size), 0xFF, PageFile::PAGE_SIZE - (first_half * pair_size) - sizeof(PageId));
 	// we can't set the nextNodePtr here because we don't have that information, BTreeIndex should handle this
+	// set siblingKey to first key in sibling
+	memcpy(&siblingKey, sibling.buffer + sizeof(RecordId), sizeof(int));
 	return 0; 
 }
 
@@ -220,7 +226,7 @@ void BTLeafNode::print_node() {
 			empty_pairs++;
 		}
 		else {
-			cout << "Rid: " << rid.pid << ", " << rid.sid << "; key: " << key << endl;
+			cout << "Rid: " << rid.pid << ", " << rid.sid << "; key: " << key << " at " << (unsigned int)(buffer + (i * pair_size)) << endl;
 		}
 	}
 	cout << "Empty pairs: " << empty_pairs << endl;
