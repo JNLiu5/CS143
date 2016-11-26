@@ -10,7 +10,9 @@
 #ifndef BTREENODE_H
 #define BTREENODE_H
 
-#define KEYS_PER_NODE 70
+#include <iostream>
+
+#include <string.h>
 
 #include "RecordFile.h"
 #include "PageFile.h"
@@ -22,7 +24,7 @@ class BTLeafNode {
   public:
     // constructor, fills buffer with 0s
     BTLeafNode();
-    
+
    /**
     * Insert the (key, rid) pair to the node.
     * Remember that all keys inside a B+tree node should be kept sorted.
@@ -102,6 +104,9 @@ class BTLeafNode {
     * @return 0 if successful. Return an error code if there is an error.
     */
     RC write(PageId pid, PageFile& pf);
+
+    // prints node buffer
+    void print_node();
 
   private:
    /**

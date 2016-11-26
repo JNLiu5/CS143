@@ -14,6 +14,8 @@
 
 #include <iostream>
 
+#include <string.h>
+
 #include "Bruinbase.h"
 #include "PageFile.h"
 #include "RecordFile.h"
@@ -53,7 +55,10 @@ class BTreeIndex {
    * @return error code. 0 if no error
    */
   RC close();
-    
+  
+  // recursive function for inserting
+  PageId insert_recursive(int key, const RecordId& rid, PageId pid, int height);
+
   /**
    * Insert (key, RecordId) pair to the index.
    * @param key[IN] the key for the value inserted into the index
@@ -62,6 +67,8 @@ class BTreeIndex {
    */
   RC insert(int key, const RecordId& rid);
 
+  // recursive function for locating
+  RC locate_recursive(int searchKey, IndexCursor& cursor, PageId pid, int height);
   /**
    * Run the standard B+Tree key search algorithm and identify the
    * leaf node where searchKey may exist. If an index entry with
