@@ -67,7 +67,8 @@ RC BTreeIndex::close()
 
 // recursive function for inserting, returns the PageId to be inserted into the node above, or -1 if no further action needed
 PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int height) {
-	int pair_size = sizeof(PageId) + sizeof(int);
+	int pair_size_leaf = sizeof(RecordId) + sizeof(int);
+	int pair_size_non = sizeof(PageId) + sizeof(int);
 	if(height == treeHeight) {
 		// base case - we're at a leaf, so insert (and split if needed)
 		BTLeafNode node;
@@ -75,7 +76,7 @@ PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, in
 		int eid;
 		node.locate(key, eid);
 		// node needs to split
-		if(node.getKeyCount() >= (PageFile::PAGE_SIZE - sizeof(PageId))/pair_size) {
+		if(node.getKeyCount() >= (PageFile::PAGE_SIZE - sizeof(PageId))/pair_size_leaf) {
 			BTLeafNode sibling;
 			PageId sibling_key;
 			node.insertAndSplit(key, rid, sibling, sibling_key);
@@ -90,9 +91,10 @@ PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, in
 		node.write(pid, pf);
 		//node.print_node();
 		//cout << endl;
-		return -1;
+	    return -1;
 	}
 	// traverse the tree to the leaf
+	cout << "we never even got here" << endl;
 	BTNonLeafNode node;
 	node.read(pid, pf);
 	PageId next_ptr;
@@ -103,7 +105,7 @@ PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, in
 	}
 	// if needed, insert new key
 	// if needed, split and return new PageId
-	if(node.getKeyCount() >= (PageFile::PAGE_SIZE - sizeof(PageId))/pair_size) {
+	if(node.getKeyCount() >= (PageFile::PAGE_SIZE - sizeof(PageId))/pair_size_non) {
 		BTNonLeafNode sibling;
 		PageId sibling_key;
 		node.insertAndSplit(key, to_insert, sibling, sibling_key);
@@ -134,7 +136,7 @@ PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, in
  * @return error code. 0 if no error
  */
 RC BTreeIndex::insert(int key, const RecordId& rid) {
-	cout << "Insert start" << endl;
+	//cout << "Insert start" << endl;
 	if(treeHeight == 0) {
 		cout << "Creating new tree" << endl;
 		BTLeafNode root;
@@ -151,7 +153,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid) {
 	}
 	else{
 		insert_recursive(key, rid, rootPid, 1);
-		cout << "Insert end" << endl;
+		//cout << "Insert end" << endl;
 		return 0;
 	}
 }
