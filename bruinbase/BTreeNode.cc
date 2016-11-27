@@ -302,3 +302,7 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
  */
 RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2)
 { return 0; }
+
+void BTNonLeafNode::print_node() {
+	return;
+}

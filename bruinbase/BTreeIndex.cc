@@ -41,8 +41,8 @@ RC BTreeIndex::open(const string& indexname, char mode)
    		cerr << "Error reading" << endl;
    		return ret;
    	}
-   	memcpy(&rootPid, &buffer[0], sizeof(PageId));
-   	memcpy(&treeHeight, &buffer[0] + sizeof(PageId), sizeof(int));
+   	memcpy(&rootPid, buffer, sizeof(PageId));
+   	memcpy(&treeHeight, buffer + sizeof(PageId), sizeof(int));
    	return 0;
 }
 
@@ -54,8 +54,8 @@ RC BTreeIndex::close()
 {
 	char buffer[PageFile::PAGE_SIZE];
 	memset(buffer, 0xFF, PageFile::PAGE_SIZE);
-	memcpy(&buffer, &rootPid, sizeof(PageId));
-	memcpy(&buffer + sizeof(PageId), &treeHeight, sizeof(int));
+	memcpy(buffer, &rootPid, sizeof(PageId));
+	memcpy(buffer + sizeof(PageId), &treeHeight, sizeof(int));
 	RC ret = pf.write(0, buffer);
 	if(ret != 0) {
 		cerr << "Error closing" << endl;
@@ -88,6 +88,8 @@ PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, in
 		// node doesn't need to split
 		node.insert(key, rid);
 		node.write(pid, pf);
+		//node.print_node();
+		//cout << endl;
 		return -1;
 	}
 	// traverse the tree to the leaf
@@ -132,7 +134,9 @@ PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, in
  * @return error code. 0 if no error
  */
 RC BTreeIndex::insert(int key, const RecordId& rid) {
+	cout << "Insert start" << endl;
 	if(treeHeight == 0) {
+		cout << "Creating new tree" << endl;
 		BTLeafNode root;
 		root.insert(key, rid);
 		rootPid = pf.endPid();
@@ -141,10 +145,13 @@ RC BTreeIndex::insert(int key, const RecordId& rid) {
 			rootPid = 1;
 		}
 		treeHeight = 1;
+		//root.print_node();
+		//cout << endl;
 		return root.write(rootPid, pf);
 	}
 	else{
 		insert_recursive(key, rid, rootPid, 1);
+		cout << "Insert end" << endl;
 		return 0;
 	}
 }
@@ -227,4 +234,26 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) {
 		}
 		return 0;
 	}
+}
+
+void BTreeIndex::print_recursive(PageId pid, int height) {
+	if(height == treeHeight) {
+		cout << "PageId: " << pid << endl;
+		BTLeafNode node;
+		node.read(pid, pf);
+		node.print_node();
+	}
+	else {
+		// TODO: recurse through nonleaf nodes
+	}
+}
+
+void BTreeIndex::print_tree() {
+	cout << "Tree: " << endl;
+	if(treeHeight == 0) {
+		return;
+	}
+	cout << "rootPid: " << rootPid << endl;
+	cout << "Height: " << treeHeight << endl;
+	print_recursive(rootPid, 1);
 }

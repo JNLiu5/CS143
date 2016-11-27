@@ -98,6 +98,11 @@ class BTreeIndex {
    * @return error code. 0 if no error
    */
   RC readForward(IndexCursor& cursor, int& key, RecordId& rid);
+
+  void print_recursive(PageId pid, int height);
+  
+  // debugging function, prints the tree DFS, pre-order
+  void print_tree();
   
  private:
   PageFile pf;         /// the PageFile used to store the actual b+tree in disk
