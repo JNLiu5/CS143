@@ -381,7 +381,7 @@ RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, in
 		// put right half of node in sibling
 		memcpy(sibling.buffer+4, buffer + half_ind - sizeof(int), PageFile::PAGE_SIZE - half_ind + sizeof(int));
 		memcpy(sibling.buffer, &pid, sizeof(PageId)); // sibling first pid becomes pid of mid
-		memset(buffer + half_ind - sizeof(int), 0xFF, half_ind + sizeof(int)); // set rest of currNode as -1
+		memset(buffer + half_ind - sizeof(int), 0xFF, half_ind - sizeof(int)); // set rest of currNode as -1
 	}
 	else if(potKey1 > key) // potKey1 is median
 	{
