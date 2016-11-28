@@ -41,11 +41,15 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   RecordFile rf;   // RecordFile containing the table
   RecordId   rid;  // record cursor for table scanning
 
+  BTreeIndex btree;
+  IndexCursor cursor;
+
   RC     rc;
   int    key;     
   string value;
   int    count;
   int    diff;
+  count = 0;
 
   // open the table file
   if ((rc = rf.open(table + ".tbl", 'r')) < 0) {
@@ -53,9 +57,100 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     return rc;
   }
 
+  // BOOLEAN/STATE VARIABLES
+
+  bool badConds = false; // if there is a condition that contradicts another, make true
+
+  bool hasKeyCond = false; // check if key condition or value range condition
+  bool valCond = false; // check to see if need val condition so we don't read it in index
+
+  // bool hasKeyRange = !(minRange ^ -9999) | !(maxRange ^ -9999); // see if has key range
+  int minRange = -9999; // min number in range
+  int maxRange = -9999; // max number in range
+  int keyMustEqual = -9999; // key must equal this
+  int keyMustNotEqual = -9998; // key mustn't equal this, never use B+ tree for this
+
+  bool hasValRange = false; // prob don't need this
+  string valMin = ""; //  prob don't need this
+  string valMax = ""; // prob don't need this
+  string valMustEqual = ""; // prob don't need this
+
+
+  // START SELECT CONDITION LOGIC, finds and sets up key stuff, 
+
+  int len = cond.size();
+  for(int i = 0; i < len; i++)
+  {
+    int potKeyVal = atoi(cond[i].value);
+
+    if(cond[i].attr = 1)
+    {
+      switch (cond[i].comp)
+      {
+        case SelCond::EQ: // also check min and max values conflict
+          if(keyMustEqual != -9998)
+            keyMustEqual = potKeyVal;
+          else if(potKeyVal != keyMustEqual) // if the potential key val is not the keymustequal value we set beforehand, then we have a bad condition
+            badConds = true;
+          break;
+        case SelCond::LT: // also check min value conflict
+          if(maxRange == -9999 || maxRange > potKeyVal)
+          {
+            maxRange = potKeyVal;
+          }
+          break;
+        case SelCond::GT: // also check max value confilct
+          if( minRange == -9999 || potKeyVal > minRange)
+          {
+            minRange = potKeyVal;
+          }
+          break;
+        case SelCond::LE: // also check min value conflict
+          if( maxRange == -9999 || maxRange > potKeyVal + 1)
+          {
+            maxRange = potKeyVal + 1;
+          }
+          break;
+        case SelCond::GE:
+
+
+      }
+    }
+
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // END SELECT CONDITION LOGIC
+
+  if(tree.open(table + ".idx", 'r') || SOME BOOLEAN STUFF)
+  {
+
+  }
+  else // WE TRAVERSE THE TREEEEEEEEEEEEEEE
+  {
+
+  }
+
+
+
+
   // scan the table file from the beginning
   rid.pid = rid.sid = 0;
-  count = 0;
+  
   while (rid < rf.endRid()) {
     // read the tuple
     if ((rc = rf.read(rid, key, value)) < 0) {
@@ -66,13 +161,14 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     // check the conditions on the tuple
     for (unsigned i = 0; i < cond.size(); i++) {
       // compute the difference between the tuple value and the condition value
-      switch (cond[i].attr) {
-      case 1:
-  diff = key - atoi(cond[i].value);
-  break;
-      case 2:
-  diff = strcmp(value.c_str(), cond[i].value);
-  break;
+      switch (cond[i].attr) 
+      {
+        case 1:
+          diff = key - atoi(cond[i].value);
+          break;
+        case 2:
+          diff = strcmp(value.c_str(), cond[i].value);
+          break;
       }
 
       // skip the tuple if any condition is not met
