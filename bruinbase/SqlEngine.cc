@@ -15,6 +15,8 @@
 #include "Bruinbase.h"
 #include "SqlEngine.h"
 
+#include "BTreeIndex.h"
+
 using namespace std;
 
 // external functions and variables for load file and sql command parsing 
@@ -134,32 +136,68 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 {
   ifstream l_file;
   l_file.open(loadfile.c_str());
-
+  RC error;
   RecordFile rf;
-  if(rf.open(table + ".tbl", 'w')) {
+  error = rf.open(table + ".tbl", 'w');
+  if(error != 0) {
+    cerr << "Error opening RecordFile in SqlEngine load" << endl;
     l_file.close();
-    return 1;
+    return error;
   }
 
+  BTreeIndex tree;
+  if(index) {
+    error = tree.open(table + ".idx", 'w');
+    if(error != 0) {
+      cerr << "Error opening tree in SqlEngine load" << endl;
+      tree.close();
+      l_file.close();
+      return error;
+    }
+  }
   string line;
   while(getline(l_file, line)) {
     int key;
     string value;
-    if(parseLoadLine(line, key, value)) {
+    error = parseLoadLine(line, key, value);
+    if(error != 0) {
+      cerr << "Error reading line from loadfile in SqlEngine load" << endl;
       rf.close();
       l_file.close();
-      return 1;
+      return error;
     }
 
     RecordId rid;
-    if(rf.append(key, value, rid)) {
+    error = rf.append(key, value, rid);
+    if(error != 0) {
+      cerr << "Error appending line to RecordFile in SqlEngine load" << endl;
       rf.close();
       l_file.close();
-      return 1;
+      return error;
+    }
+    if(index) {
+      error = tree.insert(key, rid);
+      if(error != 0) {
+        cerr << "Error inserting index into tree in SqlEngine load" << endl;
+        tree.close();
+        rf.close();
+        l_file.close();
+        return error;
+      }
     }
   }
-
-  rf.close();
+  if(index) {
+    error = tree.close();
+    if(error != 0) {
+      cerr << "Error closing tree in SqlEngine load" << endl;
+      return error;
+    }
+  }
+  error = rf.close();
+  if(error != 0) {
+    cerr << "Error closing RecordFile in SqlEngine load" << endl;
+    return error;
+  }
   l_file.close();
   return 0;
 }
