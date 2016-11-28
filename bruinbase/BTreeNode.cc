@@ -426,6 +426,7 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 			return 0;
 		}
 		pos += pair_size;
+		key_count++;
 	}
 	memcpy(&pid, buffer + pos, sizeof(PageId)); // if we've reached the end i.e. infinity
 	return 0;
