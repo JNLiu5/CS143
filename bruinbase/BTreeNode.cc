@@ -277,7 +277,7 @@ int BTNonLeafNode::getKeyCount()
 
 	while(true) 
 	{
-		if(count + 1 > max_count || (int)buffer[count * pair_size] == -1) 
+		if(count + 1 > max_count || (int)buffer[count * pair_size + sizeof(PageId)] == -1) 
 			break;
 		count++;
 	}
