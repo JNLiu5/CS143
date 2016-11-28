@@ -215,7 +215,7 @@ RC BTLeafNode::setNextNodePtr(PageId pid) {
 }
 
 void BTLeafNode::print_node() {
-	cout << "\nLeaf node" << endl;
+	cout << "Leaf node" << endl;
 	int pair_size = sizeof(RecordId) + sizeof(int);
 	int empty_pairs = 0;
 	for(int i = 0; i < (PageFile::PAGE_SIZE - sizeof(PageId))/pair_size; i++) {

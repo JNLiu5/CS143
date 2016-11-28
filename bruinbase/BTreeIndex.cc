@@ -65,68 +65,150 @@ RC BTreeIndex::close()
     return pf.close();
 }
 
-// recursive function for inserting, returns the PageId to be inserted into the node above, or -1 if no further action needed
-PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int height) {
+  /**
+   * Recursive function for insert
+   * @param key[IN] key to insert
+   * @param rid[IN] rid to insert
+   * @param pid[IN] pid of node
+   * @param height[IN] level of node in tree
+   * @param sibling_pid[OUT] the PageId of the newly created sibling, or unchanged if no sibling created
+   * @param sibling_key[OUT] the first key of the newly create sibling, or unchanged if no sibling created
+  */
+RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int height, PageId& sibling_pid, int& sibling_key) {
 	int pair_size_leaf = sizeof(RecordId) + sizeof(int);
 	int pair_size_non = sizeof(PageId) + sizeof(int);
+	RC error;
 	if(height == treeHeight) {
 		// base case - we're at a leaf, so insert (and split if needed)
 		BTLeafNode node;
-		node.read(pid, pf);
-		int eid;
-		node.locate(key, eid);
+
+		error = node.read(pid, pf);
+		if(error != 0) {
+			cerr << "Error reading leaf node in tree insert" << endl;
+			return error;
+		}
+
 		// node needs to split
 		if(node.getKeyCount() >= (PageFile::PAGE_SIZE - sizeof(PageId))/pair_size_leaf) {
 			BTLeafNode sibling;
-			PageId sibling_key;
-			node.insertAndSplit(key, rid, sibling, sibling_key);
-			PageId to_write = pf.endPid();
-			sibling.write(to_write, pf);
-			node.setNextNodePtr(to_write);
-			node.write(pid, pf);
-			return to_write;
+
+			error = node.insertAndSplit(key, rid, sibling, sibling_key);
+			if(error != 0) {
+				cerr << "Error inserting and splitting leaf node in tree insert" << endl;
+				return error;
+			}
+
+			sibling_pid = pf.endPid();
+			if(sibling_pid < 2) {
+				// since 0 is BTreeIndex variables and 1 is the first leaf node, we know that the pid must be at least 2 now
+				cerr << "Invalid PageId for sibling in tree insert" << endl;
+				return RC_INVALID_PID;
+			}
+
+			error = sibling.write(sibling_pid, pf);
+			if(error != 0) {
+				cerr << "Error writing sibling in tree insert" << endl;
+				return error;
+			}
+
+			error = node.setNextNodePtr(sibling_pid);
+			if(error != 0) {
+				cerr << "Error in setNextNodePtr in tree insert" << endl;
+				return error;
+			}
+
+			error = node.write(pid, pf);
+			if(error != 0) {
+				cerr << "Error writing node in tree insert" << endl;
+				return error;
+			}
+
+			return 0;
 		}
 		// node doesn't need to split
-		node.insert(key, rid);
-		node.write(pid, pf);
-		//node.print_node();
-		//cout << endl;
-	    return -1;
+		error = node.insert(key, rid);
+		if(error != 0) {
+			cerr << "Error inserting into node in tree insert" << endl;
+			return error;
+		}
+
+		error = node.write(pid, pf);
+		if(error != 0) {
+			cerr << "Error writing node in tree insert" << endl;
+			return error;
+		}
+	    return 0;
 	}
 	// traverse the tree to the leaf
-	cout << "we never even got here" << endl;
 	BTNonLeafNode node;
-	node.read(pid, pf);
-	PageId next_ptr;
-	node.locateChildPtr(key, next_ptr);
-	PageId to_insert = insert_recursive(key, rid, next_ptr, height + 1);
-	if(to_insert == -1) {
-		return -1;
+
+	error = node.read(pid, pf);
+	if(error != 0) {
+		cerr << "Error reading nonleaf node in tree insert" << endl;
+		return error;
 	}
+
+	PageId next_ptr;
+	error = node.locateChildPtr(key, next_ptr);
+	if(error != 0) {
+		cerr << "Error locating child pointer in tree insert" << endl;
+		return error;
+	}
+
+	PageId s_pid = -1;
+	int s_key = -1;
+	error = insert_recursive(key, rid, next_ptr, height + 1, s_pid, s_key);
+	if(error != 0) {
+		cerr << "Recursive function returned error in tree insert" << endl;
+		return error;
+	}
+	if(s_pid == -1 && s_key == -1) {
+		return 0;
+	}
+
 	// if needed, insert new key
 	// if needed, split and return new PageId
 	if(node.getKeyCount() >= (PageFile::PAGE_SIZE - sizeof(PageId))/pair_size_non) {
 		BTNonLeafNode sibling;
-		PageId sibling_key;
-		node.insertAndSplit(key, to_insert, sibling, sibling_key);
-		PageId to_write = pf.endPid();
-		node.write(pid, pf);
-		sibling.write(to_write, pf);
-		// if this is the top level of the tree and needs to be split, make a new root and set all variables accordingly
-		if(height == 1) {
-			BTNonLeafNode new_root;
-			new_root.initializeRoot(pid, sibling_key, to_write);
-			PageId new_root_pid = pf.endPid();
-			new_root.write(new_root_pid, pf);
-			rootPid = new_root_pid;
-			treeHeight++;
-			return -1;
+
+		error = node.insertAndSplit(key, s_pid, sibling, sibling_key);
+		if(error != 0) {
+			cerr << "Error inserting and splitting nonleaf node in tree insert" << endl;
+			return error;
 		}
-		return to_write;
+
+		sibling_pid = pf.endPid();
+		if(sibling_pid < 2) {
+			// since 0 is BTreeIndex variables and 1 is the first leaf node, we know that the pid must be at least 2 now
+			cerr << "Invalid PageId for sibling in tree insert" << endl;
+			return RC_INVALID_PID;
+		}
+
+		error = node.write(pid, pf);
+		if(error != 0) {
+			cerr << "Error writing nonleaf node in tree insert" << endl;
+			return error;
+		}
+
+		error = sibling.write(sibling_pid, pf);
+		if(error != 0) {
+			cerr << "Error writing sibling nonleaf node in tree insert" << endl;
+			return error;
+		}
+		return 0;
 	}
-	node.insert(key, to_insert);
-	node.write(pid, pf);
-	return -1;
+	error = node.insert(key, s_pid);
+	if(error != 0) {
+		cerr << "Error inserting into nonleaf node in tree insert" << endl;
+		return error;
+	}
+
+	error = node.write(pid, pf);
+	if(error != 0) {
+		cerr << "Error writing nonleaf node in tree insert" << endl;
+		return error;
+	}
+	return 0;
 }
 
 /*
@@ -136,9 +218,18 @@ PageId BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, in
  * @return error code. 0 if no error
  */
 RC BTreeIndex::insert(int key, const RecordId& rid) {
-	//cout << "Insert start" << endl;
+	// error checking
+	if(key < 0) {
+		cerr << "Invalid key in tree insert" << endl;
+		return RC_INVALID_ATTRIBUTE;
+	}
+	if(rid.pid < 0 || rid.sid < 0) {
+		cerr << "Invalid rid in tree insert" << endl;
+		return RC_INVALID_RID;
+	}
+	RC error;
+	// trivial case - no tree, create a new one
 	if(treeHeight == 0) {
-		cout << "Creating new tree" << endl;
 		BTLeafNode root;
 		root.insert(key, rid);
 		rootPid = pf.endPid();
@@ -147,13 +238,41 @@ RC BTreeIndex::insert(int key, const RecordId& rid) {
 			rootPid = 1;
 		}
 		treeHeight = 1;
-		//root.print_node();
-		//cout << endl;
-		return root.write(rootPid, pf);
+
+		error = root.write(rootPid, pf);
+		if(error != 0) {
+			cerr << "Error writing new tree in tree insert" << endl;
+			return error;
+		}
+		return 0;
 	}
-	else{
-		insert_recursive(key, rid, rootPid, 1);
-		//cout << "Insert end" << endl;
+	else {
+		PageId sibling_pid = -1;
+		int sibling_key = -1;
+
+		error = insert_recursive(key, rid, rootPid, 1, sibling_pid, sibling_key);
+		if(error != 0) {
+			cerr << "Recursive function returned error in tree insert" << endl;
+			return error;
+		}
+		if(sibling_pid != -1 && sibling_key != -1) {
+			cerr << "Variables to insert into new root: " << sibling_pid << "; " << sibling_key << endl;
+			BTNonLeafNode new_root;
+			new_root.initializeRoot(rootPid, sibling_key, sibling_pid);
+			rootPid = pf.endPid();
+			if(rootPid < 2) {
+				// since 0 is BTreeIndex variables and 1 is the first leaf node, we know that the rootPid must be at least 2 now
+				cerr << "Incorrect root pid value in tree insert" << endl;
+				return RC_INVALID_PID;
+			}
+			treeHeight++;
+			error = new_root.write(rootPid, pf);
+			if(error != 0) {
+				cerr << "Error writing new root node in tree insert" << endl;
+				return error;
+			}
+			return 0;
+		}
 		return 0;
 	}
 }
@@ -238,24 +357,29 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) {
 	}
 }
 
-void BTreeIndex::print_recursive(PageId pid, int height) {
-	if(height == treeHeight) {
-		cout << "PageId: " << pid << endl;
-		BTLeafNode node;
-		node.read(pid, pf);
-		node.print_node();
-	}
-	else {
-		// TODO: recurse through nonleaf nodes
-	}
-}
-
-void BTreeIndex::print_tree() {
+void BTreeIndex::print_path(int key) {
 	cout << "Tree: " << endl;
 	if(treeHeight == 0) {
+		cout << "Empty tree" << endl;
 		return;
 	}
 	cout << "rootPid: " << rootPid << endl;
 	cout << "Height: " << treeHeight << endl;
-	print_recursive(rootPid, 1);
+
+	int height = 1;
+	PageId pid = rootPid;
+	while(height != treeHeight) {
+		BTNonLeafNode node;
+		node.read(pid, pf);
+		cout << "PageId: " << pid << endl;
+		node.print_node();
+		node.locateChildPtr(key, pid);
+		height++;
+		cout << endl;
+	}
+	BTLeafNode node;
+	node.read(pid, pf);
+	cout << "PageId: " << pid << endl;
+	node.print_node();
+	return;
 }
