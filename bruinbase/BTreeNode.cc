@@ -304,25 +304,26 @@ RC BTNonLeafNode::insert(int key, PageId pid)
 	// find position, in terms of pairs, that the new key should go in the buffer
 	int pos = 0;
 
-	while(pos < num_keys) 
+	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId)) 
 	{
 		int current_key;
-		memcpy(&current_key, buffer + (pos * pair_size) + sizeof(PageId), sizeof(int));
+		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
 		if(current_key > key) 
 			break;
-		pos++;
+		pos+= pair_size;
 	}
 
 	// to insert into the middle, copy everything after to another buffer, insert, and copy back
-	int copy_size = PageFile::PAGE_SIZE - (pos * pair_size) - sizeof(PageId) - pair_size;
+	int copy_size = PageFile::PAGE_SIZE - pos - sizeof(PageId);
 	char temp_buffer[copy_size];
-	memcpy(temp_buffer, buffer + (pos * pair_size), copy_size);
-	// insert pid
-	memcpy(buffer + (pos * pair_size), &pid, sizeof(PageId));
+	memcpy(temp_buffer, buffer + pos + sizeof(PageId), copy_size);
 	// insert key
-	memcpy(buffer + (pos * pair_size) + sizeof(PageId), &key, sizeof(int));
+	memcpy(buffer + pos + sizeof(PageId), &key, sizeof(int));
+	// insert pid
+	memcpy(buffer + pos + sizeof(PageId) + sizeof(int), &pid, sizeof(PageId));
+	
 	// put rest of buffer back
-	memcpy(buffer + ((pos + 1) * pair_size), temp_buffer, copy_size);
+	memcpy(buffer + pos + pair_size + sizeof(PageId), temp_buffer, copy_size);
 	//cout << "Info: " << sizeof(buffer) << " " << sizeof(temp_buffer) << " " << copy_size << " " << pair_size << endl;
 	//cout << "Insert end" << endl;
 	return 0;
@@ -405,18 +406,18 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 	int pair_size = sizeof(PageId) + sizeof(int);
 	
 	int num_keys = getKeyCount();
-	while(pos < num_keys) 
+	while(pos < PageFil::PAGE_SIZE - 2*sizeof(PageId)) 
 	{
 		int current_key;
-		memcpy(&current_key, buffer + (pos * pair_size) + sizeof(PageId), sizeof(int));
+		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
 		if(current_key >= searchKey) 
 		{
-			memcpy(&pid, buffer + (pos * pair_size), sizeof(PageId));
+			memcpy(&pid, buffer +  pos, sizeof(PageId));
 			return 0;
 		}
-		pos++;
+		pos += pair_size;
 	}
-	memcpy(&pid, buffer + pos*pair_size-4, sizeof(PageId)); // if we've reached the end i.e. infinity
+	memcpy(&pid, buffer + pos, sizeof(PageId)); // if we've reached the end i.e. infinity
 	return 0;
 
 }
