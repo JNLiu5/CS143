@@ -304,9 +304,10 @@ RC BTNonLeafNode::insert(int key, PageId pid)
 	// find position, in terms of pairs, that the new key should go in the buffer
 	int pos = 0;
 
-	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId)) 
+	int current_key = -2;
+
+	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId) && current_key != -1) 
 	{
-		int current_key;
 		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
 		if(current_key > key) 
 			break;
@@ -406,9 +407,11 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 	int pair_size = sizeof(PageId) + sizeof(int);
 	
 	int num_keys = getKeyCount();
-	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId)) 
+
+	int current_key = -2;
+
+	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId) && current_key != -1) 
 	{
-		int current_key;
 		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
 		if(current_key >= searchKey) 
 		{
