@@ -406,7 +406,7 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 	int pair_size = sizeof(PageId) + sizeof(int);
 	
 	int num_keys = getKeyCount();
-	while(pos < PageFil::PAGE_SIZE - 2*sizeof(PageId)) 
+	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId)) 
 	{
 		int current_key;
 		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
