@@ -38,7 +38,7 @@ RC BTreeIndex::open(const string& indexname, char mode)
    	char buffer[PageFile::PAGE_SIZE];
    	ret = pf.read(0, buffer);
    	if(ret != 0) {
-   		cerr << "Error reading" << endl;
+   		cerr << "Error reading, or nothing to read" << endl;
    		return ret;
    	}
    	memcpy(&rootPid, buffer, sizeof(PageId));
@@ -97,7 +97,6 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 				cerr << "Error inserting and splitting leaf node in tree insert" << endl;
 				return error;
 			}
-
 			sibling_pid = pf.endPid();
 			if(sibling_pid < 2) {
 				// since 0 is BTreeIndex variables and 1 is the first leaf node, we know that the pid must be at least 2 now
@@ -171,7 +170,7 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 	if(node.getKeyCount() >= (PageFile::PAGE_SIZE - sizeof(PageId))/pair_size_non) {
 		BTNonLeafNode sibling;
 
-		error = node.insertAndSplit(key, s_pid, sibling, sibling_key);
+		error = node.insertAndSplit(s_key, s_pid, sibling, sibling_key);
 		if(error != 0) {
 			cerr << "Error inserting and splitting nonleaf node in tree insert" << endl;
 			return error;
@@ -197,7 +196,7 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 		}
 		return 0;
 	}
-	error = node.insert(key, s_pid);
+	error = node.insert(s_key, s_pid);
 	if(error != 0) {
 		cerr << "Error inserting into nonleaf node in tree insert" << endl;
 		return error;

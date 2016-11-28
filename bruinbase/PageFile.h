@@ -21,8 +21,7 @@ typedef int PageId;
 class PageFile {
  public:
 
-  //static const int PAGE_SIZE = 1024;    // the size of a page is 1KB
-  static const int PAGE_SIZE = 40;
+  static const int PAGE_SIZE = 1024;    // the size of a page is 1KB
 
   PageFile();
   PageFile(const std::string& filename, char mode);

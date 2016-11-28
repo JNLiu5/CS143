@@ -348,7 +348,6 @@ RC BTNonLeafNode::insert(int key, PageId pid)
  */
 RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, int& midKey)
 {
-	cout << "I was called!!!!!!!!!!!!!"  << endl << endl;
 	int count = getKeyCount();
 	int first_half = (count + 1)/2;
 	int half_ind = first_half*8;
