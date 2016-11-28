@@ -295,6 +295,7 @@ int BTNonLeafNode::getKeyCount()
 RC BTNonLeafNode::insert(int key, PageId pid)
 {
 	//cout << "Insert start" << endl;
+
 	int key_count = 0;
 	int num_keys = getKeyCount();
 	int pair_size = sizeof(PageId) + sizeof(int);
@@ -311,18 +312,12 @@ RC BTNonLeafNode::insert(int key, PageId pid)
 	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId) && key_count != num_keys) 
 	{
 		int current_key;
-		memcpy(&current_pid, buffer + pos, sizeof(int));
-		if(current_pid == -1)
-		{
-			break;
-		}
 		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
 		if(current_key > key) 
 			break;
 		pos+= pair_size;
 		key_count++;
 	}
-
 	// to insert into the middle, copy everything after to another buffer, insert, and copy back
 	int copy_size = PageFile::PAGE_SIZE - pos - sizeof(PageId);
 	char temp_buffer[copy_size];
@@ -331,9 +326,9 @@ RC BTNonLeafNode::insert(int key, PageId pid)
 	memcpy(buffer + pos + sizeof(PageId), &key, sizeof(int));
 	// insert pid
 	memcpy(buffer + pos + sizeof(PageId) + sizeof(int), &pid, sizeof(PageId));
-	
+
 	// put rest of buffer back
-	memcpy(buffer + pos + pair_size + sizeof(PageId), temp_buffer, copy_size);
+	memcpy(buffer + pos + pair_size + sizeof(PageId), temp_buffer, copy_size-12);
 	//cout << "Info: " << sizeof(buffer) << " " << sizeof(temp_buffer) << " " << copy_size << " " << pair_size << endl;
 	//cout << "Insert end" << endl;
 	return 0;
