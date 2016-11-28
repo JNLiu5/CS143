@@ -255,7 +255,6 @@ RC BTreeIndex::insert(int key, const RecordId& rid) {
 			return error;
 		}
 		if(sibling_pid != -1 && sibling_key != -1) {
-			cerr << "Variables to insert into new root: " << sibling_pid << "; " << sibling_key << endl;
 			BTNonLeafNode new_root;
 			new_root.initializeRoot(rootPid, sibling_key, sibling_pid);
 			rootPid = pf.endPid();
