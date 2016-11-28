@@ -295,6 +295,7 @@ int BTNonLeafNode::getKeyCount()
 RC BTNonLeafNode::insert(int key, PageId pid)
 {
 	//cout << "Insert start" << endl;
+	int key_count = 0;
 	int num_keys = getKeyCount();
 	int pair_size = sizeof(PageId) + sizeof(int);
 	if((num_keys + 1)* pair_size >= PageFile::PAGE_SIZE - sizeof(PageId)) {
@@ -304,14 +305,22 @@ RC BTNonLeafNode::insert(int key, PageId pid)
 	// find position, in terms of pairs, that the new key should go in the buffer
 	int pos = 0;
 
-	int current_key = -2;
 
-	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId) && current_key != -1) 
+	PageId current_pid = -2;
+
+	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId) && key_count != num_keys) 
 	{
+		int current_key;
+		memcpy(&current_pid, buffer + pos, sizeof(int));
+		if(current_pid == -1)
+		{
+			break;
+		}
 		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
 		if(current_key > key) 
 			break;
 		pos+= pair_size;
+		key_count++;
 	}
 
 	// to insert into the middle, copy everything after to another buffer, insert, and copy back
@@ -405,13 +414,11 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 {
 	int pos = 0;
 	int pair_size = sizeof(PageId) + sizeof(int);
-	
+	int key_count = 0;
 	int num_keys = getKeyCount();
-
-	int current_key = -2;
-
-	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId) && current_key != -1) 
+	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId) && key_count != num_keys) 
 	{
+		int current_key;
 		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
 		if(current_key >= searchKey) 
 		{
