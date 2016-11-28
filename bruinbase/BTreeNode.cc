@@ -405,27 +405,20 @@ RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, in
  * @param pid[OUT] the pointer to the child node to follow.
  * @return 0 if successful. Return an error code if there is an error.
  */
-RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
-{
-	int pos = 0;
+RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid) {
 	int pair_size = sizeof(PageId) + sizeof(int);
-	int key_count = 0;
+	int pair = 0;
 	int num_keys = getKeyCount();
-	while(pos < PageFile::PAGE_SIZE - 2*sizeof(PageId) && key_count != num_keys) 
-	{
+	while(pair < num_keys) {
 		int current_key;
-		memcpy(&current_key, buffer + pos + sizeof(PageId), sizeof(int));
-		if(current_key >= searchKey) 
-		{
-			memcpy(&pid, buffer +  pos, sizeof(PageId));
-			return 0;
+		memcpy(&current_key, buffer + (pair * pair_size) + sizeof(PageId), sizeof(int));
+		if(searchKey < current_key) {
+			break;
 		}
-		pos += pair_size;
-		key_count++;
+		pair++;
 	}
-	memcpy(&pid, buffer + pos, sizeof(PageId)); // if we've reached the end i.e. infinity
+	memcpy(&pid, buffer + (pair * pair_size), sizeof(PageId));
 	return 0;
-
 }
 
 /*
