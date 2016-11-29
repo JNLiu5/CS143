@@ -38,8 +38,12 @@ RC BTreeIndex::open(const string& indexname, char mode)
    	char buffer[PageFile::PAGE_SIZE];
    	ret = pf.read(0, buffer);
    	if(ret != 0) {
-   		cerr << "Error reading, or nothing to read" << endl;
-   		return ret;
+   		// RC_INVALID_PID is an expected return value if this is a new tree
+   		if(ret != RC_INVALID_PID) {
+   			cerr << "Error reading in BTreeIndex open" << endl;
+   			return ret;
+   		}
+   		return 0;
    	}
    	memcpy(&rootPid, buffer, sizeof(PageId));
    	memcpy(&treeHeight, buffer + sizeof(PageId), sizeof(int));
