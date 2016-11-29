@@ -95,13 +95,19 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       switch (cond[i].comp)
       {
         case SelCond::EQ: // also check min and max values conflict
-          if(keyMustEqual != -9998)
+          if(keyMustEqual == -9999)
           {
             keyMustEqual = potKeyVal;
             hasKeyCond = true;
           }
           else if(potKeyVal != keyMustEqual) // if the potential key val is not the keymustequal value we set beforehand, then we have a bad condition
             badConds = true;
+          break;
+        case SelCond::NE: // also check min value conflict
+          if(potKeyVal == keyMustEqual && keyMustEqual != -9999)
+          {
+            badConds == true;
+          }
           break;
         case SelCond::LT: // also check min value conflict
           if(maxRange == -9999 || maxRange > potKeyVal)
@@ -148,7 +154,12 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   }
 
 
+// keyMustEqual, minRange, maxRange
 
+  if(minRange >= maxRange - 1 || (keyMustEqual <= minRange || keyMustEqual >= maxRange) )
+  {
+    badConds = true;
+  }
 
 
 
@@ -180,13 +191,15 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   
   while (rid < rf.endRid()) {
     // read the tuple
-    if ((rc = rf.read(rid, key, value)) < 0) {
+    if ((rc = rf.read(rid, key, value)) < 0) 
+    {
       fprintf(stderr, "Error: while reading a tuple from table %s\n", table.c_str());
       goto exit_select;
     }
 
     // check the conditions on the tuple
-    for (unsigned i = 0; i < cond.size(); i++) {
+    for (unsigned i = 0; i < cond.size(); i++) 
+    {
       // compute the difference between the tuple value and the condition value
       switch (cond[i].attr) 
       {
@@ -199,25 +212,26 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       }
 
       // skip the tuple if any condition is not met
-      switch (cond[i].comp) {
+      switch (cond[i].comp) 
+      {
       case SelCond::EQ:
-  if (diff != 0) goto next_tuple;
-  break;
+        if (diff != 0) goto next_tuple;
+        break;
       case SelCond::NE:
-  if (diff == 0) goto next_tuple;
-  break;
+        if (diff == 0) goto next_tuple;
+        break;
       case SelCond::GT:
-  if (diff <= 0) goto next_tuple;
-  break;
+        if (diff <= 0) goto next_tuple;
+        break;
       case SelCond::LT:
-  if (diff >= 0) goto next_tuple;
-  break;
+        if (diff >= 0) goto next_tuple;
+        break;
       case SelCond::GE:
-  if (diff < 0) goto next_tuple;
-  break;
+        if (diff < 0) goto next_tuple;
+        break;
       case SelCond::LE:
-  if (diff > 0) goto next_tuple;
-  break;
+        if (diff > 0) goto next_tuple;
+        break;
       }
     }
 
@@ -226,16 +240,17 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     count++;
 
     // print the tuple 
-    switch (attr) {
-    case 1:  // SELECT key
-      fprintf(stdout, "%d\n", key);
-      break;
-    case 2:  // SELECT value
-      fprintf(stdout, "%s\n", value.c_str());
-      break;
-    case 3:  // SELECT *
-      fprintf(stdout, "%d '%s'\n", key, value.c_str());
-      break;
+    switch (attr) 
+    {
+      case 1:  // SELECT key
+        fprintf(stdout, "%d\n", key);
+        break;
+      case 2:  // SELECT value
+        fprintf(stdout, "%s\n", value.c_str());
+        break;
+      case 3:  // SELECT *
+        fprintf(stdout, "%d '%s'\n", key, value.c_str());
+        break;
     }
 
     // move to the next tuple
@@ -243,8 +258,10 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     ++rid;
   }
 
+  bad_condition_count: // if bad condition but still wants count(*) and don't want to exit select
   // print matching tuple count if "select count(*)"
-  if (attr == 4) {
+  if (attr == 4) 
+  {
     fprintf(stdout, "%d\n", count);
   }
   rc = 0;
