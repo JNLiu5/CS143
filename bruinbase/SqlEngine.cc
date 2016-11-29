@@ -370,11 +370,33 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     RC error;
     // start scanning table from beginning
     IndexCursor cursor;
-    error = btree.locate(0x80000000, cursor);
-    if(error != 0 && error != RC_NO_SUCH_RECORD) {
-      cerr << "Error locating beginning of tree in SqlEngine select" << endl;
+  if(keyMustEqual != -9999)
+  {
+    error = tree.locate(keyMustEqual, cursor);
+    if(error != 0 && error != RC_NO_SUCH_RECORD) 
+    {
+      // //cerr << "Error locating beginning of tree in SqlEngine select" << endl;
       goto exit_select;
     }
+  }
+  else if(minRange != -9999)
+  {
+    error = tree.locate(min, cursor);
+    if(error != 0 && error != RC_NO_SUCH_RECORD) 
+    {
+      // //cerr << "Error locating beginning of tree in SqlEngine select" << endl;
+      goto exit_select;
+    }
+  }
+  else
+  {
+    error = btree.locate(0x80000000, cursor);
+    if(error != 0 && error != RC_NO_SUCH_RECORD) 
+    {
+      // //cerr << "Error locating beginning of tree in SqlEngine select" << endl;
+      goto exit_select;
+    }
+  }
     // for each tuple:
       // read RecordFile and get key, value
       // check conditions on tuple
@@ -392,7 +414,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       if(error != 0) {
         // if the error is end of tree, that's a normal return value, otherwise alert the user
         if(error != RC_END_OF_TREE) {
-          cerr << "Error reading forward in SqlEngine select" << endl;
+          //cerr << "Error reading forward in SqlEngine select" << endl;
           goto exit_select;
         }
         goto bad_condition_count;
@@ -401,7 +423,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       string record_value;
       error = rf.read(rid, record_key, record_value);
       if(error != 0) {
-        cerr << "Error reading RecordFile in SqlEngine select" << endl;
+        //cerr << "Error reading RecordFile in SqlEngine select" << endl;
         goto exit_select;
       }
 
@@ -508,7 +530,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   RecordFile rf;
   error = rf.open(table + ".tbl", 'w');
   if(error != 0) {
-    cerr << "Error opening RecordFile in SqlEngine load" << endl;
+    //cerr << "Error opening RecordFile in SqlEngine load" << endl;
     l_file.close();
     return error;
   }
@@ -517,7 +539,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   if(index) {
     error = tree.open(table + ".idx", 'w');
     if(error != 0) {
-      cerr << "Error opening tree in SqlEngine load: " << error << endl;
+      //cerr << "Error opening tree in SqlEngine load: " << error << endl;
       tree.close();
       l_file.close();
       return error;
@@ -529,7 +551,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
     string value;
     error = parseLoadLine(line, key, value);
     if(error != 0) {
-      cerr << "Error reading line from loadfile in SqlEngine load" << endl;
+      //cerr << "Error reading line from loadfile in SqlEngine load" << endl;
       rf.close();
       l_file.close();
       return error;
@@ -538,7 +560,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
     RecordId rid;
     error = rf.append(key, value, rid);
     if(error != 0) {
-      cerr << "Error appending line to RecordFile in SqlEngine load" << endl;
+      //cerr << "Error appending line to RecordFile in SqlEngine load" << endl;
       rf.close();
       l_file.close();
       return error;
@@ -546,7 +568,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
     if(index) {
       error = tree.insert(key, rid);
       if(error != 0) {
-        cerr << "Error inserting index into tree in SqlEngine load" << endl;
+        //cerr << "Error inserting index into tree in SqlEngine load" << endl;
         tree.close();
         rf.close();
         l_file.close();
@@ -557,13 +579,13 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   if(index) {
     error = tree.close();
     if(error != 0) {
-      cerr << "Error closing tree in SqlEngine load" << endl;
+      //cerr << "Error closing tree in SqlEngine load" << endl;
       return error;
     }
   }
   error = rf.close();
   if(error != 0) {
-    cerr << "Error closing RecordFile in SqlEngine load" << endl;
+    //cerr << "Error closing RecordFile in SqlEngine load" << endl;
     return error;
   }
   l_file.close();

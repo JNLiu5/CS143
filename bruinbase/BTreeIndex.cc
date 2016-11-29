@@ -32,7 +32,7 @@ RC BTreeIndex::open(const string& indexname, char mode)
 {
 	RC ret = pf.open(indexname, mode);
    	if(ret != 0) {
-   		cerr << "Error opening" << endl;
+   		//cerr << "Error opening" << endl;
    		return ret;
    	}
    	char buffer[PageFile::PAGE_SIZE];
@@ -40,7 +40,7 @@ RC BTreeIndex::open(const string& indexname, char mode)
    	if(ret != 0) {
    		// RC_INVALID_PID is an expected return value if this is a new tree
    		if(ret != RC_INVALID_PID) {
-   			cerr << "Error reading in BTreeIndex open" << endl;
+   			//cerr << "Error reading in BTreeIndex open" << endl;
    			return ret;
    		}
    		return 0;
@@ -62,7 +62,7 @@ RC BTreeIndex::close()
 	memcpy(buffer + sizeof(PageId), &treeHeight, sizeof(int));
 	RC ret = pf.write(0, buffer);
 	if(ret != 0) {
-		cerr << "Error closing" << endl;
+		//cerr << "Error closing" << endl;
 		return ret;
 	}
 
@@ -88,7 +88,7 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 
 		error = node.read(pid, pf);
 		if(error != 0) {
-			cerr << "Error reading leaf node in tree insert" << endl;
+			//cerr << "Error reading leaf node in tree insert" << endl;
 			return error;
 		}
 
@@ -98,31 +98,31 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 
 			error = node.insertAndSplit(key, rid, sibling, sibling_key);
 			if(error != 0) {
-				cerr << "Error inserting and splitting leaf node in tree insert" << endl;
+				//cerr << "Error inserting and splitting leaf node in tree insert" << endl;
 				return error;
 			}
 			sibling_pid = pf.endPid();
 			if(sibling_pid < 2) {
 				// since 0 is BTreeIndex variables and 1 is the first leaf node, we know that the pid must be at least 2 now
-				cerr << "Invalid PageId for sibling in tree insert" << endl;
+				//cerr << "Invalid PageId for sibling in tree insert" << endl;
 				return RC_INVALID_PID;
 			}
 
 			error = sibling.write(sibling_pid, pf);
 			if(error != 0) {
-				cerr << "Error writing sibling in tree insert" << endl;
+				//cerr << "Error writing sibling in tree insert" << endl;
 				return error;
 			}
 
 			error = node.setNextNodePtr(sibling_pid);
 			if(error != 0) {
-				cerr << "Error in setNextNodePtr in tree insert" << endl;
+				//cerr << "Error in setNextNodePtr in tree insert" << endl;
 				return error;
 			}
 
 			error = node.write(pid, pf);
 			if(error != 0) {
-				cerr << "Error writing node in tree insert" << endl;
+				//cerr << "Error writing node in tree insert" << endl;
 				return error;
 			}
 
@@ -131,13 +131,13 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 		// node doesn't need to split
 		error = node.insert(key, rid);
 		if(error != 0) {
-			cerr << "Error inserting into node in tree insert" << endl;
+			//cerr << "Error inserting into node in tree insert" << endl;
 			return error;
 		}
 
 		error = node.write(pid, pf);
 		if(error != 0) {
-			cerr << "Error writing node in tree insert" << endl;
+			//cerr << "Error writing node in tree insert" << endl;
 			return error;
 		}
 	    return 0;
@@ -147,14 +147,14 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 
 	error = node.read(pid, pf);
 	if(error != 0) {
-		cerr << "Error reading nonleaf node in tree insert" << endl;
+		//cerr << "Error reading nonleaf node in tree insert" << endl;
 		return error;
 	}
 
 	PageId next_ptr;
 	error = node.locateChildPtr(key, next_ptr);
 	if(error != 0) {
-		cerr << "Error locating child pointer in tree insert" << endl;
+		//cerr << "Error locating child pointer in tree insert" << endl;
 		return error;
 	}
 
@@ -162,7 +162,7 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 	int s_key = -1;
 	error = insert_recursive(key, rid, next_ptr, height + 1, s_pid, s_key);
 	if(error != 0) {
-		cerr << "Recursive function returned error in tree insert" << endl;
+		//cerr << "Recursive function returned error in tree insert" << endl;
 		return error;
 	}
 	if(s_pid == -1 && s_key == -1) {
@@ -176,39 +176,39 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 
 		error = node.insertAndSplit(s_key, s_pid, sibling, sibling_key);
 		if(error != 0) {
-			cerr << "Error inserting and splitting nonleaf node in tree insert" << endl;
+			//cerr << "Error inserting and splitting nonleaf node in tree insert" << endl;
 			return error;
 		}
 
 		sibling_pid = pf.endPid();
 		if(sibling_pid < 2) {
 			// since 0 is BTreeIndex variables and 1 is the first leaf node, we know that the pid must be at least 2 now
-			cerr << "Invalid PageId for sibling in tree insert" << endl;
+			//cerr << "Invalid PageId for sibling in tree insert" << endl;
 			return RC_INVALID_PID;
 		}
 
 		error = node.write(pid, pf);
 		if(error != 0) {
-			cerr << "Error writing nonleaf node in tree insert" << endl;
+			//cerr << "Error writing nonleaf node in tree insert" << endl;
 			return error;
 		}
 
 		error = sibling.write(sibling_pid, pf);
 		if(error != 0) {
-			cerr << "Error writing sibling nonleaf node in tree insert" << endl;
+			//cerr << "Error writing sibling nonleaf node in tree insert" << endl;
 			return error;
 		}
 		return 0;
 	}
 	error = node.insert(s_key, s_pid);
 	if(error != 0) {
-		cerr << "Error inserting into nonleaf node in tree insert" << endl;
+		//cerr << "Error inserting into nonleaf node in tree insert" << endl;
 		return error;
 	}
 
 	error = node.write(pid, pf);
 	if(error != 0) {
-		cerr << "Error writing nonleaf node in tree insert" << endl;
+		//cerr << "Error writing nonleaf node in tree insert" << endl;
 		return error;
 	}
 	return 0;
@@ -223,11 +223,11 @@ RC BTreeIndex::insert_recursive(int key, const RecordId& rid, PageId pid, int he
 RC BTreeIndex::insert(int key, const RecordId& rid) {
 	// error checking
 	if(key < 0) {
-		cerr << "Invalid key in tree insert" << endl;
+		//cerr << "Invalid key in tree insert" << endl;
 		return RC_INVALID_ATTRIBUTE;
 	}
 	if(rid.pid < 0 || rid.sid < 0) {
-		cerr << "Invalid rid in tree insert" << endl;
+		//cerr << "Invalid rid in tree insert" << endl;
 		return RC_INVALID_RID;
 	}
 	RC error;
@@ -244,7 +244,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid) {
 
 		error = root.write(rootPid, pf);
 		if(error != 0) {
-			cerr << "Error writing new tree in tree insert" << endl;
+			//cerr << "Error writing new tree in tree insert" << endl;
 			return error;
 		}
 		return 0;
@@ -255,7 +255,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid) {
 
 		error = insert_recursive(key, rid, rootPid, 1, sibling_pid, sibling_key);
 		if(error != 0) {
-			cerr << "Recursive function returned error in tree insert" << endl;
+			//cerr << "Recursive function returned error in tree insert" << endl;
 			return error;
 		}
 		if(sibling_pid != -1 && sibling_key != -1) {
@@ -264,13 +264,13 @@ RC BTreeIndex::insert(int key, const RecordId& rid) {
 			rootPid = pf.endPid();
 			if(rootPid < 2) {
 				// since 0 is BTreeIndex variables and 1 is the first leaf node, we know that the rootPid must be at least 2 now
-				cerr << "Incorrect root pid value in tree insert" << endl;
+				//cerr << "Incorrect root pid value in tree insert" << endl;
 				return RC_INVALID_PID;
 			}
 			treeHeight++;
 			error = new_root.write(rootPid, pf);
 			if(error != 0) {
-				cerr << "Error writing new root node in tree insert" << endl;
+				//cerr << "Error writing new root node in tree insert" << endl;
 				return error;
 			}
 			return 0;
