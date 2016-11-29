@@ -367,11 +367,11 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   }
   else // WE TRAVERSE THE TREEEEEEEEEEEEEEE
   {
-      RC error;
+    RC error;
     // start scanning table from beginning
     IndexCursor cursor;
     error = btree.locate(0x80000000, cursor);
-    if(error != 0) {
+    if(error != 0 && error != RC_NO_SUCH_RECORD) {
       cerr << "Error locating beginning of tree in SqlEngine select" << endl;
       goto exit_select;
     }
@@ -388,6 +388,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       int key;
       RecordId rid;
       error = btree.readForward(cursor, key, rid);
+      cout << "next_rid --- key: " << key << "; rid: " << rid.pid << ", " << rid.sid << endl;
       if(error != 0) {
         // if the error is end of tree, that's a normal return value, otherwise alert the user
         if(error != RC_END_OF_TREE) {
@@ -425,7 +426,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
             case SelCond::EQ:
               if (diff != 0) {
                 if(can_exit && record_key > atoi(cond[i].value)) {
-                  goto exit_select;             
+                  goto bad_condition_count;             
                 }
                 goto next_rid;
               }
@@ -443,7 +444,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
             case SelCond::LT:
               if (diff >= 0) {
                 if(can_exit && record_key >= atoi(cond[i].value)) {
-                  goto exit_select;             
+                  goto bad_condition_count;             
                 }
                 goto next_rid;
               }
@@ -456,7 +457,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
             case SelCond::LE:
               if (diff > 0) {
                 if(can_exit && key > atoi(cond[i].value)) {
-                  goto exit_select;             
+                  goto bad_condition_count;             
                 }
                 goto next_rid;
               }
@@ -484,6 +485,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   bad_condition_count: // if bad condition but still wants count(*) and don't want to exit select
   // print matching tuple count if "select count(*)"
+  cout << "bad_condition_count" << endl;
   if (attr == 4) 
   {
     fprintf(stdout, "%d\n", count);
@@ -492,6 +494,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   // close the table file and return
   exit_select:
+  cout << "exit_select" << endl;
   rf.close();
   return rc;
 }
