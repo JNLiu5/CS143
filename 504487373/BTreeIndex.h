@@ -10,6 +10,12 @@
 #ifndef BTREEINDEX_H
 #define BTREEINDEX_H
 
+#define KEYS_PER_NODE 70
+
+#include <iostream>
+
+#include <string.h>
+
 #include "Bruinbase.h"
 #include "PageFile.h"
 #include "RecordFile.h"
@@ -49,7 +55,18 @@ class BTreeIndex {
    * @return error code. 0 if no error
    */
   RC close();
-    
+  
+  /**
+   * Recursive function for insert
+   * @param key[IN] key to insert
+   * @param rid[IN] rid to insert
+   * @param pid[IN] pid of node
+   * @param height[IN] level of node in tree
+   * @param sibling_pid[OUT] the PageId of the newly created sibling, or unchanged if no sibling created
+   * @param sibling_key[OUT] the first key of the newly create sibling, or unchanged if no sibling created
+  */
+  RC insert_recursive(int key, const RecordId& rid, PageId pid, int height, PageId& sibling_pid, int& sibling_key);
+
   /**
    * Insert (key, RecordId) pair to the index.
    * @param key[IN] the key for the value inserted into the index
@@ -58,6 +75,8 @@ class BTreeIndex {
    */
   RC insert(int key, const RecordId& rid);
 
+  // recursive function for locating
+  RC locate_recursive(int searchKey, IndexCursor& cursor, PageId pid, int height);
   /**
    * Run the standard B+Tree key search algorithm and identify the
    * leaf node where searchKey may exist. If an index entry with
@@ -87,6 +106,8 @@ class BTreeIndex {
    * @return error code. 0 if no error
    */
   RC readForward(IndexCursor& cursor, int& key, RecordId& rid);
+
+  void print_path(int key);
   
  private:
   PageFile pf;         /// the PageFile used to store the actual b+tree in disk

@@ -372,7 +372,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     IndexCursor cursor;
   if(keyMustEqual != -9999)
   {
-    error = tree.locate(keyMustEqual, cursor);
+    error = btree.locate(keyMustEqual, cursor);
     if(error != 0 && error != RC_NO_SUCH_RECORD) 
     {
       // //cerr << "Error locating beginning of tree in SqlEngine select" << endl;
@@ -381,7 +381,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   }
   else if(minRange != -9999)
   {
-    error = tree.locate(min, cursor);
+    error = btree.locate(minRange, cursor);
     if(error != 0 && error != RC_NO_SUCH_RECORD) 
     {
       // //cerr << "Error locating beginning of tree in SqlEngine select" << endl;
