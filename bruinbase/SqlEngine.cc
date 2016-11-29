@@ -61,28 +61,28 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   bool badConds = false; // if there is a condition that contradicts another, make true
 
-  bool hasKeyCond = false; // check if key condition or value range condition
-  bool valCond = false; // check to see if need val condition so we don't read it in index
+  bool hasIDXcond = false; // check if key condition or value range condition
+  bool hasNQcond = false; // check to see if not equal value so we don't look at B+ tree
 
   // bool hasKeyRange = !(minRange ^ -9999) | !(maxRange ^ -9999); // see if has key range
   int minRange = -9999; // min number in range
   int maxRange = -9999; // max number in range
   int keyMustEqual = -9999; // key must equal this
-  bool keyMustNotEqual = false; // key mustn't equal something, never use B+ tree for this
+  // bool keyMustNotEqual = false; // key mustn't equal something, never use B+ tree for this
 
-  bool hasValRange = false; // if this is true then we use the B+ tree
-  bool valGE = false;
-  bool valLE = false;
 
-  string valMin = "";
-  string valMax = "";
-  string valMustEqual = "";
+  bool valGE = false; // attr = 2 has GE condition
+  bool valLE = false; // attr = 2 has LE condition
+
+  string valMin = ""; // min value of string, depends on GE
+  string valMax = ""; // max value of string, depends on LE
+  string valMustEqual = ""; // val must equal this
 
 
   // only way we don't use B+ tree is if we have to find NOT key or NOT value
 
   // START SELECT CONDITION LOGIC
-  // SET UP THINGS FOR KEY AND VAL
+  // FIND IF CONDITION VECTOR HAS BAD CONDITIONS (I.E. IMPOSSIBLE)
 
 
   int len = cond.size();
@@ -95,10 +95,10 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       switch (cond[i].comp)
       {
         case SelCond::EQ: // also check min and max values conflict
-          if(keyMustEqual == -9999)
+          if(keyMustEqual == -9999) // if "uninitialized"
           {
             keyMustEqual = potKeyVal;
-            hasKeyCond = true;
+            hasIDXcond = true;
           }
           else if(potKeyVal != keyMustEqual) // if the potential key val is not the keymustequal value we set beforehand, then we have a bad condition
             badConds = true;
@@ -113,39 +113,48 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
           if(maxRange == -9999 || maxRange > potKeyVal)
           {
             maxRange = potKeyVal;
-            hasKeyCond = true;
+            hasIDXcond = true;
           }
           break;
         case SelCond::GT: // also check max value confilct
           if( minRange == -9999 || potKeyVal > minRange)
           {
             minRange = potKeyVal;
-            hasKeyCond = true;
+            hasIDXcond = true;
           }
           break;
         case SelCond::LE: // also check min value conflict
           if( maxRange == -9999 || maxRange > potKeyVal + 1)
           {
             maxRange = potKeyVal + 1;
-            hasKeyCond = true;
+            hasIDXcond = true;
           }
           break;
         case SelCond::GE:
           if( minRange == -9999 || minRange < potKeyVal -1 )
           {
             minRange = potKeyVal - 1;
-            hasKeyCond = true;
+            hasIDXcond = true;
           }
           break;
       } // end switch
     }
     else if(cond[i].attr == 2)
     {
-      int myDiff = strcmp(value.c_str(), cond[i].value);
-
       valCond = true;
-      if(cond[i].comp == SelCond::EQ)
-      {
+
+      switch (cond[i].comp):
+        case SelCond::EQ:
+          if(valMustEqual == "")
+          {
+            valMustEqual = cond[i].value;
+            hasIDXcond = true;
+          }
+          else if(strcmp(valMustEqual.c_str(), cond[i].value)) // if the potential key val is not the keymustequal value we set beforehand, then we have a bad condition
+            badConds = true;
+          break;
+        case SelCond::NE:
+          
 
       }
     }
