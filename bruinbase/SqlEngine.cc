@@ -472,13 +472,13 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       // print the tuple 
       switch (attr) {
           case 1:  // SELECT key
-            fprintf(stdout, "%d\n", key);
+            fprintf(stdout, "%d\n", record_key);
           break;
           case 2:  // SELECT value
-            fprintf(stdout, "%s\n", value.c_str());
+            fprintf(stdout, "%s\n", record_value.c_str());
           break;
           case 3:  // SELECT *
-            fprintf(stdout, "%d '%s'\n", key, value.c_str());
+            fprintf(stdout, "%d '%s'\n", record_key, record_value.c_str());
           break;
       }
     }
