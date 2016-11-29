@@ -6,6 +6,8 @@ next_rid --- key: 2634; rid: 0, 2
 next_rid --- key: 2965; rid: 0, 4
 next_rid --- key: 3084; rid: 0, 5
 next_rid --- key: 3992; rid: 0, 3
+bad_condition_count
+7
 exit_select
 Bruinbase> next_rid --- key: 272; rid: 0, 0
 272 ''
@@ -68,6 +70,8 @@ next_rid --- key: 4515; rid: 3, 0
 next_rid --- key: 4583; rid: 2, 4
 next_rid --- key: 4589; rid: 1, 0
 next_rid --- key: 4657; rid: 3, 1
+bad_condition_count
+49
 exit_select
 Bruinbase> next_rid --- key: 40; rid: 3, 2
 next_rid --- key: 46; rid: 4, 7
@@ -186,6 +190,8 @@ next_rid --- key: 4570; rid: 6, 0
 next_rid --- key: 4583; rid: 2, 4
 next_rid --- key: 4589; rid: 1, 0
 next_rid --- key: 4657; rid: 3, 1
+bad_condition_count
+99
 exit_select
 Bruinbase> next_rid --- key: 12; rid: 6, 1
 next_rid --- key: 40; rid: 3, 2
@@ -1204,6 +1210,8 @@ next_rid --- key: 4710; rid: 12, 8
 next_rid --- key: 4727; rid: 106, 5
 next_rid --- key: 4732; rid: 14, 8
 next_rid --- key: 4733; rid: 23, 8
+bad_condition_count
+999
 exit_select
 Bruinbase> next_rid --- key: 12; rid: 6, 1
 next_rid --- key: 15; rid: 70, 2
@@ -2233,6 +2241,7 @@ next_rid --- key: 4727; rid: 106, 5
 next_rid --- key: 4732; rid: 14, 8
 4732 ''
 next_rid --- key: 4733; rid: 23, 8
+bad_condition_count
 exit_select
 Bruinbase> next_rid --- key: 12; rid: 6, 1
 next_rid --- key: 15; rid: 70, 2
@@ -3262,6 +3271,7 @@ next_rid --- key: 4727; rid: 106, 5
 next_rid --- key: 4732; rid: 14, 8
 4732 ''
 next_rid --- key: 4733; rid: 23, 8
+bad_condition_count
 exit_select
 Bruinbase> Bruinbase> Bruinbase> next_rid --- key: 2; rid: 1277, 3
 next_rid --- key: 3; rid: 1145, 3
@@ -14122,6 +14132,8 @@ next_rid --- key: 2011123411; rid: 1177, 0
 next_rid --- key: 2013123411; rid: 668, 7
 next_rid --- key: 2015123411; rid: 1129, 6
 next_rid --- key: 2016123411; rid: 698, 1
+bad_condition_count
+10858
 exit_select
 Bruinbase> next_rid --- key: 2; rid: 1277, 3
 next_rid --- key: 3; rid: 1145, 3

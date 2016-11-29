@@ -388,13 +388,14 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
       int key;
       RecordId rid;
       error = btree.readForward(cursor, key, rid);
-      cout << "next_rid --- key: " << key << "; rid: " << rid.pid << ", " << rid.sid << endl;
+      //cout << "next_rid --- key: " << key << "; rid: " << rid.pid << ", " << rid.sid << endl;
       if(error != 0) {
         // if the error is end of tree, that's a normal return value, otherwise alert the user
         if(error != RC_END_OF_TREE) {
           cerr << "Error reading forward in SqlEngine select" << endl;
+          goto exit_select;
         }
-        goto exit_select;
+        goto bad_condition_count;
       }
       int record_key;
       string record_value;
@@ -485,7 +486,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   bad_condition_count: // if bad condition but still wants count(*) and don't want to exit select
   // print matching tuple count if "select count(*)"
-  cout << "bad_condition_count" << endl;
+  //cout << "bad_condition_count" << endl;
   if (attr == 4) 
   {
     fprintf(stdout, "%d\n", count);
@@ -494,7 +495,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   // close the table file and return
   exit_select:
-  cout << "exit_select" << endl;
+  //cout << "exit_select" << endl;
   rf.close();
   return rc;
 }
