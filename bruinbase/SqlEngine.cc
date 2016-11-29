@@ -103,11 +103,13 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
           else if(potKeyVal != keyMustEqual) // if the potential key val is not the keymustequal value we set beforehand, then we have a bad condition
             badConds = true;
           break;
-        case SelCond::NE: // also check min value conflict
+        case SelCond::NE: // check not equal conflict
           if(potKeyVal == keyMustEqual && keyMustEqual != -9999)
           {
-            badConds == true;
+            badConds = true;
           }
+          else
+            hasNQcond = true;
           break;
         case SelCond::LT: // also check min value conflict
           if(maxRange == -9999 || maxRange > potKeyVal)
@@ -149,55 +151,147 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
           if(valMustEqual == "")
           {
             valMustEqual = cond[i].value;
-            hasIDXcond = true;
+            
           }
           else if(strcmp(valMustEqual.c_str(), cond[i].value)) // if the potential key val is not the keymustequal value we set beforehand, then we have a bad condition
             badConds = true;
           break;
         case SelCond::NE:
-          if(strcmp(valMustEqual.c_str(), cond[i].value)==0 && valMustEqual != -9999)
+          if(strcmp(valMustEqual.c_str(), cond[i].value)==0 && valMustEqual != "")
           {
-            badConds == true;
+            badConds = true;
+          }
+          else
+            hasNQcond = true;
+          break;
+        case SelCond::LT: // also check min value conflict
+          if(valMax == "" || strcmp(valMax.c_str(), cond[i].value)>=0)
+          {
+            valMax = cond[i].value;
+            
+            valLE = false;
           }
           break;
-      }
-
-      }
+        case SelCond::GT: // also check min value conflict
+          if(valMin == "" || strcmp(valMin.c_str(), cond[i].value)<=0)
+          {
+            valMin = cond[i].value;
+            
+            valGE = false;
+          }
+          break;
+        case SelCond::LE: // also check min value conflict
+          if(valMax == "" || strcmp(valMax.c_str(), cond[i].value)>=0)
+          {
+            valMax = cond[i].value;
+            
+            valLE = true;
+          }
+          break;
+        case SelCond::GE: // also check min value conflict
+          if(valMin == "" || strcmp(valMin.c_str(), cond[i].value)<=0)
+          {
+            valMin = cond[i].value;
+            
+            valGE = true;
+          }
+          break;
+      } // end switch
+    }
   }
 
-// keyMustEqual, minRange, maxRange
-
-  if(minRange >= maxRange - 1 || (keyMustEqual <= minRange || keyMustEqual >= maxRange) )
+  if( (minRange != -9999 && maxRange != -9999 && minRange >= maxRange - 1)
+    || ((keyMustEqual != -9999 && minRange != -9999) && (keyMustEqual <= minRange))
+    || ((keyMustEqual != -9999 && maxRange != -9999) && (keyMustEqual >= maxRange)) )
   {
     badConds = true;
   }
 
 
+  if(valMin != "" && valMax != "" && valMustEqual != "")
+  {
+    if(valLE && valGE)
+    {
+      if( strcmp(valMin.c_str(), valMax.c_str()) > 0  || strcmp(valMustEqual.c_str(), valMin.c_str()) < 0 || strcmp(valMustEqual.c_str(), valMax.c_str()) > 0)
+        badConds = true;
+    }
+    else if(valLE && !valGE)
+    {
+      if( strcmp(valMin.c_str(), valMax.c_str()) >= 0  || strcmp(valMustEqual.c_str(), valMin.c_str()) < 0 || strcmp(valMustEqual.c_str(), valMax.c_str()) >= 0)
+        badConds = true;
+    }
+    else if(!valLE && valGE)
+    {
+      if( strcmp(valMin.c_str(), valMax.c_str()) >= 0  || strcmp(valMustEqual.c_str(), valMin.c_str()) <= 0 || strcmp(valMustEqual.c_str(), valMax.c_str()) > 0)
+        badConds = true;
+    }
+  }
+  else if(valMin != "" && valMax != "" && valMustEqual == "")
+  {
+    if(valLE && valGE)
+    {
+      if( strcmp(valMin.c_str(), valMax.c_str()) > 0)
+        badConds = true;
+    }
+    else if(valLE && !valGE)
+    {
+      if( strcmp(valMin.c_str(), valMax.c_str()) >= 0)
+        badConds = true;
+    }
+    else if(!valLE && valGE)
+    {
+      if( strcmp(valMin.c_str(), valMax.c_str()) >= 0)
+        badConds = true;
+    }
+  }
 
+  else if(valMin != "" && valMax =="" && valMustEqual != "")
+  {
+    if(valLE && valGE)
+    {
+      if( strcmp(valMustEqual.c_str(), valMin.c_str()) < 0)
+        badConds = true;
+    }
+    else if(valLE && !valGE)
+    {
+      if(strcmp(valMustEqual.c_str(), valMin.c_str()) < 0)
+        badConds = true;
+    }
+    else if(!valLE && valGE)
+    {
+      if( strcmp(valMustEqual.c_str(), valMin.c_str()) <= 0)
+        badConds = true;
+    }
+  }
+  else if(valMin == "" && valMax != "" && valMustEqual != "")
+  {
+    if(valLE && valGE)
+    {
+      if( strcmp(valMustEqual.c_str(), valMax.c_str()) > 0)
+        badConds = true;
+    }
+    else if(valLE && !valGE)
+    {
+      if( strcmp(valMustEqual.c_str(), valMax.c_str()) >= 0)
+        badConds = true;
+    }
+    else if(!valLE && valGE)
+    {
+      if( strcmp(valMustEqual.c_str(), valMax.c_str()) > 0)
+        badConds = true;
+    }
+  }
 
-
-
-
-
-
-
-
+  if(bad_conds)
+  {
+    goto bad_condition_count;
+  }
 
   // END SELECT CONDITION LOGIC
 
-  if(tree.open(table + ".idx", 'r') || SOME BOOLEAN STUFF)
+  if(tree.open(table + ".idx", 'r') || (!hasIDXCond && attr != 4))
   {
-
-  }
-  else // WE TRAVERSE THE TREEEEEEEEEEEEEEE
-  {
-
-  }
-
-
-
-
-  // scan the table file from the beginning
+    // scan the table file from the beginning
   rid.pid = rid.sid = 0;
   
   while (rid < rf.endRid()) {
@@ -268,6 +362,124 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     next_tuple:
     ++rid;
   }
+
+  }
+  else // WE TRAVERSE THE TREEEEEEEEEEEEEEE
+  {
+      RC error;
+    // start scanning table from beginning
+    IndexCursor cursor;
+    error = tree.locate(0x80000000, cursor);
+    if(error != 0) {
+      cerr << "Error locating beginning of tree in SqlEngine select" << endl;
+      goto exit_select;
+    }
+    // for each tuple:
+      // read RecordFile and get key, value
+      // check conditions on tuple
+        // compute difference between tuple value and condition value
+        // check against conditions, break out if any fail
+        // if none fail, increment count
+        // print tuple
+    while(true) {
+      next_tuple:
+
+      int key;
+      RecordId rid;
+      error = tree.readForward(cursor, key, rid);
+      if(error != 0) {
+        // if the error is end of tree, that's a normal return value, otherwise alert the user
+        if(error != RC_END_OF_TREE) {
+          cerr << "Error reading forward in SqlEngine select" << endl;
+        }
+        goto exit_select;
+      }
+      int record_key;
+      string record_value;
+      error = rf.read(rid, record_key, record_value);
+      if(error != 0) {
+        cerr << "Error reading RecordFile in SqlEngine select" << endl;
+        goto exit_select;
+      }
+
+    // check the conditions on the tuple
+      for (unsigned i = 0; i < cond.size(); i++) 
+      {
+        // when this is true, we may check to see if we can exit the function and bypass the rest of the tree
+        bool can_exit = false;
+          // compute the difference between the tuple value and the condition value
+          switch (cond[i].attr) {
+            case 1:
+                diff = record_key - atoi(cond[i].value);
+                can_exit = true;
+              break;
+            case 2:
+                diff = strcmp(record_value.c_str(), cond[i].value);
+                break;
+          }
+
+          // skip the tuple if any condition is not met
+          // also determine if we should just exit select entirely
+          switch (cond[i].comp) {
+            case SelCond::EQ:
+              if (diff != 0) {
+                if(can_exit && record_key > cond[i].value) {
+                  goto exit_select;             
+                }
+                goto next_tuple;
+              }
+              break;
+            case SelCond::NE:
+              if (diff == 0) {
+                goto next_tuple;
+              }
+              break;
+            case SelCond::GT:
+              if (diff <= 0) {
+                goto next_tuple;
+              }
+              break;
+            case SelCond::LT:
+              if (diff >= 0) {
+                if(can_exit && record_key >= cond[i].value) {
+                  goto exit_select;             
+                }
+                goto next_tuple;
+              }
+              break;
+            case SelCond::GE:
+              if (diff < 0) {
+                goto next_tuple;
+              }
+              break;
+            case SelCond::LE:
+              if (diff > 0) {
+                if(can_exit && key > cond[i].value) {
+                  goto exit_select;             
+                }
+                goto next_tuple;
+              }
+              break;
+        }
+      }
+    // the condition is met for the tuple. 
+      // increase matching tuple counter
+      count++;
+
+      // print the tuple 
+      switch (attr) {
+          case 1:  // SELECT key
+            fprintf(stdout, "%d\n", key);
+          break;
+          case 2:  // SELECT value
+            fprintf(stdout, "%s\n", value.c_str());
+          break;
+          case 3:  // SELECT *
+            fprintf(stdout, "%d '%s'\n", key, value.c_str());
+          break;
+      }
+    }
+  }  
 
   bad_condition_count: // if bad condition but still wants count(*) and don't want to exit select
   // print matching tuple count if "select count(*)"
