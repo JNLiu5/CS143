@@ -63,6 +63,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   bool hasIDXcond = false; // check if key condition or value range condition
   bool hasNQcond = false; // check to see if not equal value so we don't look at B+ tree
+  bool valCond = false; // check to see if valcond so that we don't look at values sometimes
 
   // bool hasKeyRange = !(minRange ^ -9999) | !(maxRange ^ -9999); // see if has key range
   int minRange = -9999; // min number in range
@@ -289,7 +290,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   // END SELECT CONDITION LOGIC
 
-  if(tree.open(table + ".idx", 'r') || (!hasIDXCond && attr != 4))
+  if(tree.open(table + ".idx", 'r') || (!hasIDXcond && attr != 4))
   {
     // scan the table file from the beginning
   rid.pid = rid.sid = 0;
