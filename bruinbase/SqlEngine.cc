@@ -68,28 +68,38 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   int minRange = -9999; // min number in range
   int maxRange = -9999; // max number in range
   int keyMustEqual = -9999; // key must equal this
-  int keyMustNotEqual = -9998; // key mustn't equal this, never use B+ tree for this
+  bool keyMustNotEqual = false; // key mustn't equal something, never use B+ tree for this
 
-  bool hasValRange = false; // prob don't need this
-  string valMin = ""; //  prob don't need this
-  string valMax = ""; // prob don't need this
-  string valMustEqual = ""; // prob don't need this
+  bool hasValRange = false; // if this is true then we use the B+ tree
+  bool valGE = false;
+  bool valLE = false;
+
+  string valMin = "";
+  string valMax = "";
+  string valMustEqual = "";
 
 
-  // START SELECT CONDITION LOGIC, finds and sets up key stuff, 
+  // only way we don't use B+ tree is if we have to find NOT key or NOT value
+
+  // START SELECT CONDITION LOGIC
+  // SET UP THINGS FOR KEY AND VAL
+
 
   int len = cond.size();
   for(int i = 0; i < len; i++)
   {
-    int potKeyVal = atoi(cond[i].value);
-
     if(cond[i].attr = 1)
     {
+      int potKeyVal = atoi(cond[i].value);
+
       switch (cond[i].comp)
       {
         case SelCond::EQ: // also check min and max values conflict
           if(keyMustEqual != -9998)
+          {
             keyMustEqual = potKeyVal;
+            hasKeyCond = true;
+          }
           else if(potKeyVal != keyMustEqual) // if the potential key val is not the keymustequal value we set beforehand, then we have a bad condition
             badConds = true;
           break;
@@ -97,22 +107,39 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
           if(maxRange == -9999 || maxRange > potKeyVal)
           {
             maxRange = potKeyVal;
+            hasKeyCond = true;
           }
           break;
         case SelCond::GT: // also check max value confilct
           if( minRange == -9999 || potKeyVal > minRange)
           {
             minRange = potKeyVal;
+            hasKeyCond = true;
           }
           break;
         case SelCond::LE: // also check min value conflict
           if( maxRange == -9999 || maxRange > potKeyVal + 1)
           {
             maxRange = potKeyVal + 1;
+            hasKeyCond = true;
           }
           break;
         case SelCond::GE:
+          if( minRange == -9999 || minRange < potKeyVal -1 )
+          {
+            minRange = potKeyVal - 1;
+            hasKeyCond = true;
+          }
+          break;
+      } // end switch
+    }
+    else if(cond[i].attr == 2)
+    {
+      int myDiff = strcmp(value.c_str(), cond[i].value);
 
+      valCond = true;
+      if(cond[i].comp == SelCond::EQ)
+      {
 
       }
     }
