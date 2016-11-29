@@ -539,6 +539,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   exit_select:
   //cout << "exit_select" << endl;
   if(!(table + ".idx", 'r') || (!hasIDXcond && attr != 4))
+    btree.close();
   rf.close();
   return rc;
 }
