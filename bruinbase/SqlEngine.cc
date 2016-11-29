@@ -143,7 +143,8 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     {
       valCond = true;
 
-      switch (cond[i].comp):
+      switch (cond[i].comp)
+      {
         case SelCond::EQ:
           if(valMustEqual == "")
           {
@@ -154,14 +155,15 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
             badConds = true;
           break;
         case SelCond::NE:
-          
+          if(strcmp(valMustEqual.c_str(), cond[i].value)==0 && valMustEqual != -9999)
+          {
+            badConds == true;
+          }
+          break;
+      }
 
       }
-    }
-
-
   }
-
 
 // keyMustEqual, minRange, maxRange
 
