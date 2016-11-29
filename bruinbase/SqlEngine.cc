@@ -290,7 +290,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
   // END SELECT CONDITION LOGIC
 
-  if(btree.open(table + ".idx", 'r') || (!hasIDXcond && attr != 4))
+  if(btree.open(table + ".idx", 'r') || (!hasIDXcond && attr != 4)) // no index condition or count(*) because count(*) likes b+ tree when there are key conditions
   {
     // scan the table file from the beginning
   rid.pid = rid.sid = 0;
@@ -419,6 +419,26 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
         }
         goto bad_condition_count;
       }
+
+    if(!valCond && attr==4) // no value conditions and count(*) so we don't have to even read anything
+    {
+      if(minRange != -9999)
+      {
+        if(key < minRange)
+          goto bad_condition_count;
+      }
+      if(maxRange != -9999)
+      {
+        if(key > maxRange)
+          goto bad_condition_count;
+      }
+      if(keyMustEqual != -9999 && key != keyMustEqual) // we located the key it must equal using locate.(keyMustEqual, cursor) so once we readforward we should pass this
+        goto bad_condition_count;
+
+      count++;
+      continue;
+    }
+
       int record_key;
       string record_value;
       error = rf.read(rid, record_key, record_value);
